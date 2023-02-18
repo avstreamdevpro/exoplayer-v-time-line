@@ -47,7 +47,7 @@ publishing {
         release(MavenPublication) {
             groupId = 'org.avstreamdevpro.android'
             artifactId = 'lib-video-timeline'
-            version = '1.0.0'
+            version = '1.0.1'
 
             afterEvaluate {
                 from components.release

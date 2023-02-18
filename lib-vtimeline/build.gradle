@@ -10,10 +10,14 @@ android {
     defaultConfig {
         minSdk 21
         targetSdk 33
+        aarMetadata {
+            minCompileSdk = 29
+        }
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
     }
+
 
     buildTypes {
         release {

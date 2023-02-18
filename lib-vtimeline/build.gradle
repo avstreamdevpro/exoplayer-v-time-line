@@ -10,9 +10,6 @@ android {
     defaultConfig {
         minSdk 21
         targetSdk 31
-        aarMetadata {
-            minCompileSdk = 31
-        }
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -34,7 +31,7 @@ android {
 dependencies {
 
     implementation 'androidx.appcompat:appcompat:1.4.0'
-    implementation 'androidx.recyclerview:recyclerview:1.2.1'
+    implementation 'androidx.recyclerview:recyclerview:1.2.0'
 
     api 'com.google.android.exoplayer:exoplayer-core:2.15.1'
     api ('com.google.android.exoplayer:exoplayer-ui:2.15.1') {

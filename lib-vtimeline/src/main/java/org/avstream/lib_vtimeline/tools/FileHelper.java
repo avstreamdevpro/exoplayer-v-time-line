@@ -56,10 +56,8 @@ public class FileHelper {
 
         try {
             StatFs statFs = new StatFs(dir.getAbsolutePath());
-            long blockCount =
-                    SDK_INT < JELLY_BEAN_MR2 ? (long) statFs.getBlockCount() : statFs.getBlockCountLong();
-            long blockSize =
-                    SDK_INT < JELLY_BEAN_MR2 ? (long) statFs.getBlockSize() : statFs.getBlockSizeLong();
+            long blockCount = statFs.getBlockCountLong();
+            long blockSize =  statFs.getBlockSizeLong();
             long available = blockCount * blockSize;
             // Target 2% of the total space.
             size = available / 50;

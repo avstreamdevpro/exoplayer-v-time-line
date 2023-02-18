@@ -7,19 +7,21 @@ import android.os.Looper;
 import android.util.AttributeSet;
 import android.view.Surface;
 
+import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.video.VideoListener;
+import com.google.android.exoplayer2.video.VideoSize;
 import com.otaliastudios.opengl.core.EglConfigChooser;
 import com.otaliastudios.opengl.core.EglContextFactory;
 
 import org.avstream.lib_vtimeline.ExoPlayerFactory;
 import org.avstream.lib_vtimeline.TimelineViewFace;
 
-public class TimelineGlSurfaceView extends GLSurfaceView implements TimelineViewFace, VideoListener, GlRenderer.SurfaceEventListener {
+public class TimelineGlSurfaceView extends GLSurfaceView implements TimelineViewFace, Player.Listener, GlRenderer.SurfaceEventListener {
 
     private final Handler mainHandler;
     private GlRenderer renderer;
-    private SimpleExoPlayer player;
+    private ExoPlayer player;
     private ExoPlayerFactory videoPlayerFactory;
     private String mediaUri;
 
@@ -45,8 +47,11 @@ public class TimelineGlSurfaceView extends GLSurfaceView implements TimelineView
     }
 
     @Override
-    public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
-        float videoAspect = ((float) width / height) * pixelWidthHeightRatio;
+    public void onVideoSizeChanged(VideoSize videoSize) {
+        int width = videoSize.width;
+        int height = videoSize.height;
+        float ratio = videoSize.pixelWidthHeightRatio;
+        float videoAspect = ((float) width / height) * ratio;
         renderer.onAspectPrepared(videoAspect);
         requestLayout();
     }
@@ -62,8 +67,9 @@ public class TimelineGlSurfaceView extends GLSurfaceView implements TimelineView
         renderer.setStartRendering();
 
         player = videoPlayerFactory.getPlayer(getContext());
-        player.prepare(videoPlayerFactory.getMediaSource(mediaUri, getContext()));
-        player.addVideoListener(this);
+        player.setMediaSource(videoPlayerFactory.getMediaSource(mediaUri, getContext()));
+        player.prepare();
+        player.addListener(this);
     }
 
     @Override

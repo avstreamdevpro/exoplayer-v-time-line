@@ -19,17 +19,12 @@ public class GlUtils {
             reverseBuf(pixelBuffer, width, height);
             File file = new File(parent, UUID.randomUUID() + ".jpg");
             Log.d("pbo_test", "Saving: " + file.getName());
-            BufferedOutputStream bos = null;
-            try {
-                bos = new BufferedOutputStream(new FileOutputStream(file.getAbsolutePath()));
+            try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file.getAbsolutePath()))) {
                 Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
                 bmp.copyPixelsFromBuffer(pixelBuffer);
                 bmp.compress(Bitmap.CompressFormat.JPEG, 90, bos);
                 bmp.recycle();
-            } finally {
-                if (bos != null) bos.close();
             }
-
             return file.getAbsolutePath();
         }
 

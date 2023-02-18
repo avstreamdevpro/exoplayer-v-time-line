@@ -4,13 +4,9 @@ package org.avstream.lib_vtimeline;
 import android.content.Context;
 import android.os.Handler;
 
-import androidx.annotation.Nullable;
-
 import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.Renderer;
 import com.google.android.exoplayer2.audio.AudioRendererEventListener;
-import com.google.android.exoplayer2.drm.DrmSessionManager;
-import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
 import com.google.android.exoplayer2.mediacodec.MediaCodecInfo;
 import com.google.android.exoplayer2.mediacodec.MediaCodecSelector;
 import com.google.android.exoplayer2.mediacodec.MediaCodecUtil;
@@ -23,7 +19,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class VideoRendererOnlyFactory extends DefaultRenderersFactory {
@@ -43,28 +38,18 @@ public class VideoRendererOnlyFactory extends DefaultRenderersFactory {
         public List<MediaCodecInfo> getDecodersSortedSoftwareFirst(
                 List<MediaCodecInfo> decoderInfos) {
             decoderInfos = new ArrayList<>(decoderInfos);
-            Collections.sort(decoderInfos, new Comparator<MediaCodecInfo>() {
-                @Override
-                public int compare(MediaCodecInfo o1, MediaCodecInfo o2) {
-                    if (o1.softwareOnly && !o2.softwareOnly) {
-                        return -1;
-                    } else if (o2.softwareOnly && !o1.softwareOnly) {
-                        return 1;
-                    }
-                    return 0;
+            Collections.sort(decoderInfos, (o1, o2) -> {
+                if (o1.softwareOnly && !o2.softwareOnly) {
+                    return -1;
+                } else if (o2.softwareOnly && !o1.softwareOnly) {
+                    return 1;
                 }
+                return 0;
             });
             return decoderInfos;
 
         }
 
-        // ??? Need to update
-
-//        @Nullable
-//        @Override
-//        public MediaCodecInfo getPassthroughDecoderInfo() throws MediaCodecUtil.DecoderQueryException {
-//            return MediaCodecUtil.getPassthroughDecoderInfo();
-//        }
     };
 
     public VideoRendererOnlyFactory(Context context, boolean preferSoftware) {
@@ -73,24 +58,19 @@ public class VideoRendererOnlyFactory extends DefaultRenderersFactory {
         this.preferSoftware = preferSoftware;
     }
 
-    // ??? Need to update
+    @Override
+    public Renderer[] createRenderers(Handler eventHandler, VideoRendererEventListener videoRendererEventListener, AudioRendererEventListener audioRendererEventListener, TextOutput textRendererOutput, MetadataOutput metadataRendererOutput) {
 
-//    @NotNull
-//    @Override
-//    public Renderer[] createRenderers(Handler eventHandler, @NotNull VideoRendererEventListener videoRendererEventListener,
-//                                      AudioRendererEventListener audioRendererEventListener,
-//                                      TextOutput textRendererOutput, @NotNull MetadataOutput metadataRendererOutput,
-//                                      @Nullable DrmSessionManager<FrameworkMediaCrypto> drmSessionManager) {
-//        ArrayList<Renderer> rendererList = new ArrayList<>();
-//
-//        buildVideoRenderers(context, EXTENSION_RENDERER_MODE_OFF,
-//                selector, drmSessionManager, false, true,
-//                eventHandler,videoRendererEventListener, 1000, rendererList);
-//        if (rendererList.get(0) instanceof MediaCodecVideoRenderer) {
-//            mediaCodecVideoRenderer = rendererList.get(0);
-//        }
-//        return rendererList.toArray(new Renderer[0]);
-//    }
+        ArrayList<Renderer> rendererList = new ArrayList<>();
+        buildVideoRenderers(
+                context, EXTENSION_RENDERER_MODE_OFF, selector, true, eventHandler,
+                videoRendererEventListener, 1000, rendererList);
+
+        if (rendererList.get(0) instanceof MediaCodecVideoRenderer) {
+            mediaCodecVideoRenderer = rendererList.get(0);
+        }
+        return rendererList.toArray(new Renderer[0]);
+    }
 
     public Renderer getMediaCodecVideoRenderer() {
         return mediaCodecVideoRenderer;

@@ -6,13 +6,14 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.view.Surface;
 
-import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SeekParameters;
-import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.upstream.DataSource;
-import com.google.android.exoplayer2.video.VideoListener;
+import com.google.android.exoplayer2.upstream.HttpDataSource;
+import com.google.android.exoplayer2.video.VideoSize;
 
 import org.avstream.lib_vtimeline.android.MRetriever;
 import org.avstream.lib_vtimeline.render.RetroRenderer;
@@ -25,7 +26,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.concurrent.Executors;
 
-public class RetroInstance implements RetroSurfaceListener, VideoListener, Player.EventListener {
+public class RetroInstance implements RetroSurfaceListener, Player.Listener {
 
     private final int size;
     private Context context;
@@ -37,7 +38,7 @@ public class RetroInstance implements RetroSurfaceListener, VideoListener, Playe
 
     private ExoPlayerFactory videoPlayerFactory;
     private VideoFrameCache videoFrameCache;
-    private SimpleExoPlayer player;
+    private ExoPlayer player;
     private MediaSource explicitMediaSource;
 
     private Handler mainHandler = new Handler();
@@ -60,14 +61,15 @@ public class RetroInstance implements RetroSurfaceListener, VideoListener, Playe
         return videoFrameCache.getCacheDir();
     }
 
-    public void setPlayerInstance(SimpleExoPlayer player) {
+    public void setPlayerInstance(ExoPlayer player) {
         this.player = player;
     }
 
     public void setExplicitMediaSource(MediaSource explicitMediaSource) {
         this.explicitMediaSource = explicitMediaSource;
         if (player != null) {
-            player.prepare(explicitMediaSource);
+            player.setMediaSource(explicitMediaSource);
+            player.prepare();
         }
     }
 
@@ -134,10 +136,12 @@ public class RetroInstance implements RetroSurfaceListener, VideoListener, Playe
         }
         if (explicitMediaSource != null) {
             if (isIdle()) {
-                player.prepare(explicitMediaSource);
+                player.setMediaSource(explicitMediaSource);
+                player.prepare();
             }
         } else if (!currentJob.mediaUri.equals(currentPreparedSource) || isIdle()) {
-            player.prepare(videoPlayerFactory.getMediaSource(currentJob.mediaUri, context));
+            player.setMediaSource(videoPlayerFactory.getMediaSource(currentJob.mediaUri, context));
+            player.prepare();
             currentPreparedSource = currentJob.mediaUri;
             if (offscreenSurface != null) {
                 offscreenSurface.clearTxtMtx();
@@ -150,7 +154,7 @@ public class RetroInstance implements RetroSurfaceListener, VideoListener, Playe
 
     private void prepareVideoPlayer() {
         player = videoPlayerFactory.getPlayer(context);
-        player.addVideoListener(this);
+        player.addListener(this);
         player.addListener(this);
     }
 
@@ -164,25 +168,23 @@ public class RetroInstance implements RetroSurfaceListener, VideoListener, Playe
         }
     }
 
-    // ??? Need to update
+    @Override
+    public void onPlayerError(PlaybackException error) {
+        Loggy.d("Player err: " + (error != null ? error.getMessage() : ""));
+        stop(true);
+        Throwable cause = error.getCause();
+        if (cause instanceof HttpDataSource.HttpDataSourceException) {
+            currentJobFinished();
+            return;
+        }
 
-//    @Override
-//    public void onPlayerError(ExoPlaybackException error) {
-//        Loggy.d("Player err: " + (error != null ? error.getMessage() : ""));
-//        stop(true);
-//        if (error != null && error.type == ExoPlaybackException.TYPE_SOURCE) {
-//            currentJobFinished();
-//            return;
-//        }
-//
-//        if (explicitMediaSource == null) { // fallback not handled for explicit mediaSource
-//            if (mediaMetRetreiver == null) {
-//                mediaMetRetreiver = new MRetriever(context, frameSize(),
-//                        Executors.newFixedThreadPool(1));
-//            }
-//            loadUsingFallbackMethod();
-//        }
-//    }
+        if (explicitMediaSource == null) { // fallback not handled for explicit mediaSource
+            if (mediaMetRetreiver == null) {
+                mediaMetRetreiver = new MRetriever(context, frameSize(), Executors.newFixedThreadPool(1));
+            }
+            loadUsingFallbackMethod();
+        }
+    }
 
     private void loadUsingFallbackMethod() {
         if (currentJob != null) {
@@ -238,8 +240,11 @@ public class RetroInstance implements RetroSurfaceListener, VideoListener, Playe
     }
 
     @Override
-    public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
-        float videoAspect = ((float) width / height) * pixelWidthHeightRatio;
+    public void onVideoSizeChanged(VideoSize videoSize) {
+        int width = videoSize.width;
+        int height = videoSize.height;
+        float ratio = videoSize.pixelWidthHeightRatio;
+        float videoAspect = ((float) width / height) * ratio;
         offscreenSurface.onVideoAspectChanged(videoAspect);
     }
 
@@ -249,7 +254,6 @@ public class RetroInstance implements RetroSurfaceListener, VideoListener, Playe
         currentJob = null;
         if (player != null) {
             player.removeListener(this);
-            player.removeVideoListener(this);
             player.release();
             player = null;
         }
@@ -318,9 +322,9 @@ public class RetroInstance implements RetroSurfaceListener, VideoListener, Playe
     }
 
     static class Task {
-        private String mediaUri;
+        private final String mediaUri;
         final long time;
-        private int hash;
+        private final int hash;
         final FetchCallback<File> callback;
 
         public Task(String mediaUri, long time, int hash, FetchCallback<File> callback) {

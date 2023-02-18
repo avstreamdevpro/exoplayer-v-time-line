@@ -28,7 +28,7 @@ import java.util.concurrent.Executors;
 
 public class RetroInstance implements RetroSurfaceListener, Player.Listener {
 
-    private final int size;
+    private int size;
     private Context context;
 
     private RetroRenderer offscreenSurface;
@@ -322,10 +322,10 @@ public class RetroInstance implements RetroSurfaceListener, Player.Listener {
     }
 
     static class Task {
-        private final String mediaUri;
-        final long time;
-        private final int hash;
-        final FetchCallback<File> callback;
+        private String mediaUri;
+        long time;
+        final int hash;
+        FetchCallback<File> callback;
 
         public Task(String mediaUri, long time, int hash, FetchCallback<File> callback) {
             this.mediaUri = mediaUri;
